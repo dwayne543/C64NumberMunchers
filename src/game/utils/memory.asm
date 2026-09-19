@@ -252,3 +252,43 @@ initialize_memory:
 	rts
 
 // =====================================================================================
+
+
+// =====================================================================================
+// PRESERVE VARIABLES
+// =====================================================================================
+.macro preserve_variables(num_variables)
+{
+	ldx #num_variables
+
+  preserve_next_variable:
+	lda UMEM_VARIABLES_DATA_START, x
+	pha
+	cpx #$00
+	beq return_preserve_variables
+	dex
+	jmp preserve_next_variable
+
+  return_preserve_variables:
+}
+// =====================================================================================
+
+
+// =====================================================================================
+// RESTORE VARIABLES
+// =====================================================================================
+.macro restore_variables(num_variables)
+{
+	ldx #$00
+
+  restore_next_variable:
+  	pla
+	sta UMEM_VARIABLES_DATA_START, x
+	cpx #num_variables
+	beq return_restore_variables
+	inx
+	jmp restore_next_variable
+
+  return_restore_variables:
+}
+// =====================================================================================

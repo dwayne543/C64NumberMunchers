@@ -91,8 +91,10 @@ populate_grid_cell:
     lda MMEM_ZERO_PAGE + 1
     sta UMEM_VARIABLES_DATA_START + 1               // Variables + 1 = string address high byte
     lda MMEM_ZERO_PAGE + 2
+    sta UMEM_VARIABLES_DATA_START + 2               // Variables + 2 = x
     sta MMEM_ZERO_PAGE
     lda MMEM_ZERO_PAGE + 3
+    sta UMEM_VARIABLES_DATA_START + 3               // Variables + 3 = y
     sta MMEM_ZERO_PAGE + 1
     jsr get_screen_address_for_grid_coordinates
 
@@ -114,9 +116,78 @@ populate_grid_cell:
     cpy #$05                            // Read 5 chars total
     bne apply_next_char
 
+    // Update the cell attributes to indicate this cell is populated:    
+    ldx UMEM_VARIABLES_DATA_START + 2
+    ldy UMEM_VARIABLES_DATA_START + 3
+    stx MMEM_ZERO_PAGE
+    sty MMEM_ZERO_PAGE + 1
+    lda #SCREEN_GRID_ATTR_HASVALUE
+    sta MMEM_ZERO_PAGE + 2
+    lda #ON
+    sta MMEM_ZERO_PAGE + 3
+    jsr update_cell_attribute
+
     rts
 
 // ===============================================================================
+
+
+// ===============================================================================
+// UPDATE CELL ATTRIBUTE
+// ===============================================================================
+// ZERO_PAGE      = x
+// ZERO_PAGE + 1  = y
+// ZERO_PAGE + 2  = bit
+// ZERO_PAGE + 3  = value
+// ===============================================================================
+update_cell_attribute:
+    
+    jsr get_attribute_offset_for_grid_x_y    
+    lda #>UMEM_GRID_ATTRIBUTES_START
+    sta MMEM_ZERO_PAGE + 1  
+    jsr set_bit
+    rts
+
+// ===============================================================================
+
+
+// ===============================================================================
+// GET ATTRIBUTE OFFSET FOR GRID X Y
+// ===============================================================================
+// - ZERO_PAGE      = x
+// - ZERO_PAGE + 1  = y
+// - 
+// - Places offset in accumulator, places the complete low byte of address in ZERO_PAGE
+// ===============================================================================
+get_attribute_offset_for_grid_x_y:
+
+    ldx MMEM_ZERO_PAGE
+    ldy MMEM_ZERO_PAGE + 1
+
+    lda #<UMEM_GRID_ATTRIBUTES_START
+    sta MMEM_ZERO_PAGE
+
+  process_next_y:
+    cpy #$00                              // Have we counted all the Y coordinates for this row yet?
+    beq process_next_x                    // If so, advance the X coordinate and reset the Y coordinates
+    inc MMEM_ZERO_PAGE
+    dey
+    jmp process_next_y
+
+  process_next_x:
+    cpx #$00                              // Have we counted all the X coordinates yet?
+    beq return_get_attr_offset            // If so, we have found the byte offset.
+    inc MMEM_ZERO_PAGE
+    dex
+    ldy #$04
+    jmp process_next_y
+
+  return_get_attr_offset:
+    lda MMEM_ZERO_PAGE
+    rts
+
+// ===============================================================================
+
 
 // ===============================================================================
 // GET SCREEN ADDRESS FOR GRID COORDINATES
