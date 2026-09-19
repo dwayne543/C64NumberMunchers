@@ -42,6 +42,7 @@
 .const UMEM_GRID_SEED_ADDR				= $2FBC
 .const UMEM_SEED_COUNTER_ADDR			= $2FBB
 .const UMEM_CHOICES_DATA_START			= $6400
+.const UMEM_GRID_ATTRIBUTES_START		= $5F90
 // ============================================
 
 
@@ -175,6 +176,11 @@
 .const SCREEN_GRID_ROW_SPACING  		= 4 		// Each grid row is 4 units apart from the last
 .const SCREEN_GRID_COLUMN_SPACING 		= 6 		// Each grid column is 6 units apart from the last
 .const SCREEN_GRID_DATA_START 			= MMEM_SCREEN_CHAR_RAM_START + (SCREEN_ROW_OFFSET * SCREEN_GRID_FIRST_ROW) + SCREEN_GRID_FIRST_COLUMN
+.const SCREEN_GRID_ATTR_HASVALUE		= $00
+.const SCREEN_GRID_ATTR_ISCORRECT		= $01
+.const SCREEN_GRID_ATTR_ISPLAYER		= $02
+.const SCREEN_GRID_ATTR_ISENEMY			= $03
+.const SCREEN_GRID_ATTR_ISSAFE			= $04
 // ============================================
 
 

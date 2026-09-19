@@ -395,55 +395,110 @@ init_grid:
   	jmp end_init_grid
 
   init_grid_multiples_level_1:
-  	// Get 10 random correct answers and store them in 10 random cells:
-  	ldx #$0A
-  	stx UMEM_VARIABLES_DATA_START + 2
+  	// Populate 10 correct choices:
+  	:set_parameters(<Multiples_Mode_Choices_OP2_Correct, >Multiples_Mode_Choices_OP2_Correct, $09, NULL, NULL, NULL, NULL)
+	jsr populate_grid_section  	
 
-  populate_next_correct_choice:
-  	ldx UMEM_VARIABLES_DATA_START + 2
+	// Populate 10 incorrect choices:
+  	:set_parameters(<Multiples_Mode_Choices_OP2_Incorrect, >Multiples_Mode_Choices_OP2_Incorrect, $09, NULL, NULL, NULL, NULL)
+	jsr populate_grid_section 
+
+	// Populate 10 random choices:
+  	:set_parameters(<Multiples_Mode_Choices_OP2_Correct, >Multiples_Mode_Choices_OP2_Correct, $13, NULL, NULL, NULL, NULL)
+	jsr populate_grid_section 
+
+  end_init_grid:
+  	rts
+
+// =====================================================================================
+
+
+// =====================================================================================
+// POPULATE GRID SECTION
+// =====================================================================================
+// - Populates a 10-cell segment of the grid with random data.
+// - 
+// - ZERO_PAGE 		= Base address of choice data low byte
+// - ZERO_PAGE + 1 	= Base address of choice data high byte
+// - ZERO_PAGE + 2 	= Allowed offset distance ahead to pull choice options
+// =====================================================================================
+populate_grid_section:
+
+	// Get 10 random choices and store them in 10 random cells:
+  	ldx #$0A
+  	stx UMEM_VARIABLES_DATA_START 						// Variables + 0 = Current iteration (1-10)
+
+  	// Preserve parameters:
+  	lda MMEM_ZERO_PAGE
+  	sta UMEM_VARIABLES_DATA_START + 1 					// Variables + 1 = Choice data low byte
+  	lda MMEM_ZERO_PAGE + 1
+  	sta UMEM_VARIABLES_DATA_START + 2 					// Variables + 2 = Choice data high byte
+  	lda MMEM_ZERO_PAGE + 2
+  	sta UMEM_VARIABLES_DATA_START + 3 					// Variables + 3 = Allowed offset distance
+
+  populate_next_choice:
+  	ldx UMEM_VARIABLES_DATA_START
+
   	lda #$00
   	sta MMEM_ZERO_PAGE
-  	lda #$09
+  	lda UMEM_VARIABLES_DATA_START + 3
   	sta MMEM_ZERO_PAGE + 1
+
+  	:preserve_variables(3)
   	jsr get_random_number
+  	tay 
+  	:restore_variables(3)
+  	tya
 
   	// Now we have a pointer to a random correct answer:
   	sta MMEM_ZERO_PAGE + 2
-  	lda #<Multiples_Mode_Choices_OP2_Correct
-  	sta MMEM_ZERO_PAGE
-  	lda #>Multiples_Mode_Choices_OP2_Correct
+  	lda UMEM_VARIABLES_DATA_START + 2
   	sta MMEM_ZERO_PAGE + 1
+  	lda UMEM_VARIABLES_DATA_START + 1
+  	sta MMEM_ZERO_PAGE
+
+  	:preserve_variables(3)
   	jsr get_choice_address
+  	:restore_variables(3)
 
   	// Now zero page contains the address of the random correct answer string:
   	lda MMEM_ZERO_PAGE
-  	sta UMEM_VARIABLES_DATA_START
+  	pha
   	lda MMEM_ZERO_PAGE + 1
-  	sta UMEM_VARIABLES_DATA_START + 1
+  	pha
+  	lda UMEM_VARIABLES_DATA_START
+  	pha
 
   	// Now we need to fetch the next random x, y grid coordinate from the seed data:
+  	:preserve_variables(3)
   	jsr get_next_seed_location
+  	:restore_variables(3)
 
   	// Now zero page contains the x, y coordinate to place the string:
   	lda MMEM_ZERO_PAGE
   	sta MMEM_ZERO_PAGE + 2
   	lda MMEM_ZERO_PAGE + 1
   	sta MMEM_ZERO_PAGE + 3
-  	lda UMEM_VARIABLES_DATA_START 
-  	sta MMEM_ZERO_PAGE
-  	lda UMEM_VARIABLES_DATA_START + 1
+  	pla
+  	sta UMEM_VARIABLES_DATA_START
+  	pla
   	sta MMEM_ZERO_PAGE + 1
-  	.break
+  	pla
+  	sta MMEM_ZERO_PAGE
+
+  	:preserve_variables(3)
   	jsr populate_grid_cell
+  	:restore_variables(3)
 
   	// Move to the next of the 10 correct answers:
-  	ldx UMEM_VARIABLES_DATA_START + 2
+  	ldx UMEM_VARIABLES_DATA_START
   	dex
-  	stx UMEM_VARIABLES_DATA_START + 2
+  	stx UMEM_VARIABLES_DATA_START
   	cpx #$00
-  	bne populate_next_correct_choice
+  	beq return_populate_grid_section
+  	jmp populate_next_choice
 
-  end_init_grid:
+  return_populate_grid_section:
   	rts
 
 // =====================================================================================
