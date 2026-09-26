@@ -16,8 +16,8 @@
 
 // Output file map:
 #if DEBUG
-.segmentdef MultiplesModeData					[start=UMEM_MODE_DATA_START]
-.file [name=MAIN_FILE_NAME, 					segments="BasicUpstart, Main, Sprites, Screen, Tables, UtilityRoutines, MultiplesModeData"] // Change mode name here for debugging this segment only
+.segmentdef GameModeData						[start=UMEM_MODE_DATA_START]
+.file [name=MAIN_FILE_NAME, 					segments="BasicUpstart, Main, Sprites, Screen, Tables, UtilityRoutines, GameModeData"]
 #else
 .file [name=MAIN_FILE_NAME, 					segments="Main, Sprites, Screen, Tables, UtilityRoutines"]
 #endif

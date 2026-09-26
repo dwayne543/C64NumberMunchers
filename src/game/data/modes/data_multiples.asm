@@ -1,7 +1,10 @@
-#import "../../../common/const.asm"
+#if DEBUG
+#else
+	#import "../../../common/const.asm"
+	.segmentdef GameModeData [start=UMEM_MODE_DATA_START]
+	.file [name=MULTIPLES_MODE_DATA_FILE_NAME, segments="GameModeData"]
+#endif
 
-.segmentdef GameModeData [start=UMEM_MODE_DATA_START]
-.file [name=MULTIPLES_MODE_DATA_FILE_NAME, segments="GameModeData"]
 .segment GameModeData
 
 Game_Mode_Data:
