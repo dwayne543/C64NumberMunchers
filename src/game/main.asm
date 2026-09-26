@@ -1,9 +1,10 @@
-#import "const.asm"
+#import "../common/const.asm"
 #import "segdefs.asm"
 #import "data/screen.asm"
 #import "data/sprites.asm"
 #import "data/tables.asm"
-#import "data/choices.asm"
+.segment UtilityRoutines
+#import "../common/disk.asm"
 #import "game_logic.asm"
 #import "utils/memory.asm"
 #import "utils/input.asm"
@@ -11,8 +12,11 @@
 #import "utils/sprites.asm"
 #import "utils/sound.asm"
 
+#if DEBUG
+#import "data/modes/data_multiples.asm"
 .segment BasicUpstart
-:BasicUpstart(main) 
+:BasicUpstart(main)
+#endif
 
 .segment Main
 main:
@@ -22,9 +26,6 @@ main:
     :load_character_screen(UMEM_GAME_SCREEN_DATA_START)
     :init_score()
 
-    lda #GAME_MODE_MULTIPLES
-    jsr set_game_mode
-
     jsr init_level
     jsr init_sprite_subsystem
     jsr initialize_rng_mode
@@ -33,6 +34,12 @@ main:
     jsr display_sprite
 
     jsr init_grid
+
+    lda #SPRITE_PLAYER
+    sta MMEM_ZERO_PAGE
+    lda #$C0
+    sta MMEM_ZERO_PAGE + 1
+    jsr queue_sprite_idle_frame
 
     //ldx #$06
     //ldy #$05

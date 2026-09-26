@@ -1,4 +1,4 @@
-.segment UtilityRoutines
+BLANK_CHOICE: .text "     "
 
 // =====================================================================================
 // INIT SCORE
@@ -56,7 +56,7 @@ set_score(score)
 }
 // =====================================================================================
 
-
+/*
 // =====================================================================================
 // SET BREAKPOINT
 // =====================================================================================
@@ -90,6 +90,7 @@ set_score(score)
 // =====================================================================================
 
 
+
 // =====================================================================================
 // CHECK EXIT BREAKPOINT
 // =====================================================================================
@@ -101,6 +102,7 @@ set_score(score)
 // =====================================================================================
 
 
+
 // =====================================================================================
 // EXIT BREAKPOINT
 // =====================================================================================
@@ -109,7 +111,7 @@ set_score(score)
 	jsr restore_working_data
 }
 // =====================================================================================
-
+*/
 
 // =====================================================================================
 // SET INIT COMPLETE
@@ -127,7 +129,7 @@ set_score(score)
 // =====================================================================================
 process_sprite_queues:
 	
-	jsr process_coordinate_queue
+		jsr process_coordinate_queue
     jsr process_animation_queue
 
     rts
@@ -202,14 +204,35 @@ process_user_input:
 // =====================================================================================
 munch:
 
-	cmp #SPRITE_PLAYER
-	bne return_munch
+	cmp #SPRITE_PLAYER   						// Was this the player?
+	bne return_munch 							// If not, just queue the animation only
 	ldx UMEM_SPRITE_PLAYER_POINTER_ADDR
+	pha
+	txa
+	pha
+
+    // Clear the value in the cell - first we need the x and y of the player:
+    lda #SPRITE_PLAYER
+    sta MMEM_ZERO_PAGE
+    jsr get_sprite_grid_position
+
+    lda MMEM_ZERO_PAGE
+    sta MMEM_ZERO_PAGE + 2
+    lda MMEM_ZERO_PAGE + 1
+    sta MMEM_ZERO_PAGE + 3
+    lda #<BLANK_CHOICE
+    sta MMEM_ZERO_PAGE
+    lda #>BLANK_CHOICE
+    sta MMEM_ZERO_PAGE + 1
+    jsr populate_grid_cell
+
+    pla
+    tax
+    pla
 	sta MMEM_ZERO_PAGE
 
   set_munch_param:
     stx MMEM_ZERO_PAGE + 1
-
     jsr queue_munch_animation
 
   return_munch:
@@ -328,7 +351,7 @@ get_random_number:
 	clc
 	adc MMEM_ZERO_PAGE
 
-    rts
+  rts
 
 // =====================================================================================
 
@@ -345,7 +368,7 @@ get_random_number:
 // - ZERO_PAGE + 1 	= String address high byte
 // =====================================================================================
 get_choice_address:
-	
+
 	// Compute starting address from index:
 	ldx MMEM_ZERO_PAGE + 2						// X = choice index
 
@@ -381,31 +404,93 @@ init_grid:
   	// We need to keep track of choices - we need 10 correct, 10 incorrect, and 10 random.
   	// Number of available correct and incorrect choices and addresses vary with game mode and level.
 
-  	// Check the game mode first:
-  	lda UMEM_GAME_MODE_ADDR
-  	cmp #GAME_MODE_MULTIPLES
-  	beq init_grid_multiples
-  	jmp end_init_grid
+  	// 10 correct choices:
+  	lda #<UMEM_MODE_DATA_START
+  	sta MMEM_ZERO_PAGE
+  	lda #>UMEM_MODE_DATA_START
+  	sta MMEM_ZERO_PAGE + 1
+  	lda UMEM_LEVEL_ADDR 													// Get the current level (zero-based)
+  	asl 																					// Multiply by 4 to get the data lookup offset
+  	asl
+  	clc
+  	adc MMEM_ZERO_PAGE
+  	sta MMEM_ZERO_PAGE
+  	lda #$00
+  	adc MMEM_ZERO_PAGE + 1
+  	sta MMEM_ZERO_PAGE + 1
+  	ldy #$00
+  	lda (MMEM_ZERO_PAGE), y
+  	sta MMEM_ZERO_PAGE + 3
+  	iny
+  	lda (MMEM_ZERO_PAGE), y
+  	sta MMEM_ZERO_PAGE + 4
+  	lda MMEM_ZERO_PAGE + 3
+  	sta MMEM_ZERO_PAGE
+  	lda MMEM_ZERO_PAGE + 4
+  	sta MMEM_ZERO_PAGE + 1
 
-  init_grid_multiples:
-  	// Check the level:
-  	lda UMEM_LEVEL_ADDR
-  	cmp #$00
-  	beq init_grid_multiples_level_1
-  	jmp end_init_grid
+  	// TODO: Make length dynamic
+  	lda #$09
+  	sta MMEM_ZERO_PAGE + 2
+  	jsr populate_grid_section
 
-  init_grid_multiples_level_1:
-  	// Populate 10 correct choices:
-  	:set_parameters(<Multiples_Mode_Choices_OP2_Correct, >Multiples_Mode_Choices_OP2_Correct, $09, NULL, NULL, NULL, NULL)
-	jsr populate_grid_section  	
+  	// 10 incorrect choices:
+  	lda #<UMEM_MODE_DATA_START
+  	sta MMEM_ZERO_PAGE
+  	lda #>UMEM_MODE_DATA_START
+  	sta MMEM_ZERO_PAGE + 1
+  	lda UMEM_LEVEL_ADDR 													// Get the current level (zero-based)
+  	asl 																					// Multiply by 4 to get the data lookup offset
+  	asl
+  	clc
+  	adc MMEM_ZERO_PAGE
+  	clc
+  	adc #$02 																			// Offset to look only at incorrect answers
+  	sta MMEM_ZERO_PAGE
+  	lda #$00
+  	adc MMEM_ZERO_PAGE + 1
+  	sta MMEM_ZERO_PAGE + 1
+  	ldy #$00
+  	lda (MMEM_ZERO_PAGE), y
+  	sta MMEM_ZERO_PAGE + 3
+  	iny
+  	lda (MMEM_ZERO_PAGE), y
+  	sta MMEM_ZERO_PAGE + 4
+  	lda MMEM_ZERO_PAGE + 3
+  	sta MMEM_ZERO_PAGE
+  	lda MMEM_ZERO_PAGE + 4
+  	sta MMEM_ZERO_PAGE + 1
+  	lda #$09
+  	sta MMEM_ZERO_PAGE + 2
+  	jsr populate_grid_section
 
-	// Populate 10 incorrect choices:
-  	:set_parameters(<Multiples_Mode_Choices_OP2_Incorrect, >Multiples_Mode_Choices_OP2_Incorrect, $09, NULL, NULL, NULL, NULL)
-	jsr populate_grid_section 
-
-	// Populate 10 random choices:
-  	:set_parameters(<Multiples_Mode_Choices_OP2_Correct, >Multiples_Mode_Choices_OP2_Correct, $13, NULL, NULL, NULL, NULL)
-	jsr populate_grid_section 
+  	// 10 random choices:
+  	lda #<UMEM_MODE_DATA_START
+  	sta MMEM_ZERO_PAGE
+  	lda #>UMEM_MODE_DATA_START
+  	sta MMEM_ZERO_PAGE + 1
+  	lda UMEM_LEVEL_ADDR 													// Get the current level (zero-based)
+  	asl 																					// Multiply by 4 to get the data lookup offset
+  	asl
+  	clc
+  	adc MMEM_ZERO_PAGE
+  	sta MMEM_ZERO_PAGE
+  	lda #$00
+  	adc MMEM_ZERO_PAGE + 1
+  	sta MMEM_ZERO_PAGE + 1
+  	ldy #$00
+  	lda (MMEM_ZERO_PAGE), y
+  	sta MMEM_ZERO_PAGE + 3
+  	iny
+  	lda (MMEM_ZERO_PAGE), y
+  	sta MMEM_ZERO_PAGE + 4
+  	lda MMEM_ZERO_PAGE + 3
+  	sta MMEM_ZERO_PAGE
+  	lda MMEM_ZERO_PAGE + 4
+  	sta MMEM_ZERO_PAGE + 1
+  	lda #$13
+  	sta MMEM_ZERO_PAGE + 2
+  	jsr populate_grid_section
 
   end_init_grid:
   	rts
@@ -632,16 +717,5 @@ get_next_seed_location:
 init_level:
 	lda #$00
 	sta UMEM_LEVEL_ADDR
-	rts
-// =====================================================================================
-
-
-// =====================================================================================
-// SET GAME MODE
-// =====================================================================================
-// - A = Game Mode
-// =====================================================================================
-set_game_mode:
-	sta UMEM_GAME_MODE_ADDR
 	rts
 // =====================================================================================
