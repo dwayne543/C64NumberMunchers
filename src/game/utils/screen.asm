@@ -4,6 +4,7 @@
 // - Assumes that screen color data immediately follows 
 // - character data.
 // =========================================================
+
 .macro 
 
 load_character_screen(data_start_address)
@@ -116,15 +117,29 @@ populate_grid_cell:
     cpy #$05                            // Read 5 chars total
     bne apply_next_char
 
-    // Update the cell attributes to indicate this cell is populated:    
+    // Update the cell attributes to indicate whether this cell is populated:  
+
+    // If this was the empty string, set the flag to zero:
+    lda UMEM_VARIABLES_DATA_START
+    cmp #<BLANK_CHOICE
+    bne set_cell_populated
+    lda UMEM_VARIABLES_DATA_START + 1
+    cmp #>BLANK_CHOICE
+    bne set_cell_populated
+    lda #OFF
+    jmp do_cell_pop_attr_update
+
+  set_cell_populated:
+    lda #ON
+
+  do_cell_pop_attr_update:
+    sta MMEM_ZERO_PAGE + 3
     ldx UMEM_VARIABLES_DATA_START + 2
     ldy UMEM_VARIABLES_DATA_START + 3
     stx MMEM_ZERO_PAGE
     sty MMEM_ZERO_PAGE + 1
     lda #SCREEN_GRID_ATTR_HASVALUE
     sta MMEM_ZERO_PAGE + 2
-    lda #ON
-    sta MMEM_ZERO_PAGE + 3
     jsr update_cell_attribute
 
     rts
@@ -137,7 +152,7 @@ populate_grid_cell:
 // ===============================================================================
 // ZERO_PAGE      = x
 // ZERO_PAGE + 1  = y
-// ZERO_PAGE + 2  = bit
+// ZERO_PAGE + 2  = attribute (bit)
 // ZERO_PAGE + 3  = value
 // ===============================================================================
 update_cell_attribute:
@@ -146,6 +161,26 @@ update_cell_attribute:
     lda #>UMEM_GRID_ATTRIBUTES_START
     sta MMEM_ZERO_PAGE + 1  
     jsr set_bit
+    rts
+
+// ===============================================================================
+
+
+// ===============================================================================
+// GET CELL ATTRIBUTE
+// ===============================================================================
+// - ZERO_PAGE      = x
+// - ZERO_PAGE + 1  = y
+// - ZERO_PAGE + 2  = attribute (bit)
+// - 
+// - Stores attribute (ON or OFF) in accumulator
+// ===============================================================================
+get_cell_attribute:
+
+    jsr get_attribute_offset_for_grid_x_y
+    lda #>UMEM_GRID_ATTRIBUTES_START
+    sta MMEM_ZERO_PAGE + 1
+    jsr get_bit
     rts
 
 // ===============================================================================

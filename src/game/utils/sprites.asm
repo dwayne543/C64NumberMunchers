@@ -857,7 +857,7 @@ queue_y_coordinate_decrement:
 
 return_from_init_sprite_routines:
 	rts
-
+	
 
 // =====================================================================================
 // QUEUE MUNCH ANIMATION
@@ -932,11 +932,10 @@ queue_munch_animation:
 	bne continue_munch_animation						// If not, continue animation
 
   munch_return_idle_frame:
-  	lda UMEM_VARIABLES_DATA_START + 4
-  	sta MMEM_ZERO_PAGE + 1
   	lda UMEM_VARIABLES_DATA_START
   	sta MMEM_ZERO_PAGE
-  	jsr queue_animation_update
+  	lda UMEM_VARIABLES_DATA_START + 1
+  	jsr queue_sprite_idle_frame
 
   	rts
 
@@ -1000,6 +999,34 @@ queue_munch_animation:
 		jmp return_sprite_update
 
 	  continue_apply_coord_update:
+
+	  	// Is this the player?
+	  	lda #SPRITE_PLAYER
+	  	cmp UMEM_VARIABLES_DATA_START
+	  	beq set_sprite_player
+	  	lda #FALSE
+	  	sta UMEM_VARIABLES_DATA_START + 9 					// Variables + 9 = is player (TRUE or FALSE)
+	  	lda #SCREEN_GRID_ATTR_ISENEMY
+	  	sta MMEM_ZERO_PAGE + 2
+	  	jmp check_apply_coord_direction
+
+	  set_sprite_player:
+	  	lda #TRUE
+	  	sta UMEM_VARIABLES_DATA_START + 9 					// Variables + 9 = is player (TRUE or FALSE)
+	  	lda #SCREEN_GRID_ATTR_ISPLAYER
+	  	sta MMEM_ZERO_PAGE + 2
+
+	  check_apply_coord_direction:
+
+	  	// Clear position flags for current grid coordinates:
+	  	lda UMEM_VARIABLES_DATA_START + 1
+	  	sta MMEM_ZERO_PAGE
+	  	lda UMEM_VARIABLES_DATA_START + 4
+	  	sta MMEM_ZERO_PAGE + 1
+	  	lda #FALSE
+	  	sta MMEM_ZERO_PAGE + 3
+	  	jsr update_cell_attribute
+
 	.if (direction == SPRITE_RIGHT || direction == SPRITE_LEFT)
 	{
 		ldy #SPRITE_X_STEP 								    // Y = SPRITE_X_STEP
@@ -1195,18 +1222,60 @@ queue_munch_animation:
 	    jsr set_sprite_grid_position
 
 	return_sprite_update:
-
 		// Queue idle frame:
 		lda UMEM_VARIABLES_DATA_START
 		sta MMEM_ZERO_PAGE
-		lda UMEM_VARIABLES_DATA_START + 6
+		lda UMEM_VARIABLES_DATA_START + 5
 		sta MMEM_ZERO_PAGE + 1
-		jsr queue_animation_update
+		jsr queue_sprite_idle_frame
 
 		rts
 
 	return_from_init:
 }
+// =====================================================================================
+
+
+// =====================================================================================
+// QUEUE SPRITE IDLE FRAME
+// =====================================================================================
+// ZERO_PAGE 		= sprite index
+// ZERO_PAGE + 1 	= starting animation frame
+// =====================================================================================
+queue_sprite_idle_frame:
+
+	// Is this the player?
+	lda #SPRITE_PLAYER
+	cmp MMEM_ZERO_PAGE
+	bne return_to_idle_frame
+
+	// Yes, this is the player. Check if the player is in a populated cell:
+	lda MMEM_ZERO_PAGE + 1
+	pha
+	jsr get_sprite_grid_position
+	lda #SCREEN_GRID_ATTR_HASVALUE
+	sta MMEM_ZERO_PAGE + 2
+	jsr get_cell_attribute
+	ldy #SPRITE_PLAYER
+	tax
+	sty MMEM_ZERO_PAGE
+	pla
+	sta MMEM_ZERO_PAGE + 1
+	txa
+	cmp #OFF
+	beq return_to_idle_frame
+
+	// Player is in a populated cell - swap the idle frame for the transparent frame:
+	lda MMEM_ZERO_PAGE + 1
+	clc
+	adc #$0A
+	sta MMEM_ZERO_PAGE + 1
+
+  return_to_idle_frame:
+	jsr queue_animation_update
+
+	rts
+
 // =====================================================================================
 
 
@@ -1220,13 +1289,30 @@ queue_munch_animation:
 set_sprite_grid_position:
 
 	lda MMEM_ZERO_PAGE
+	cmp #SPRITE_PLAYER
+	beq set_sprite_grid_flag_player
+	ldy #SCREEN_GRID_ATTR_ISENEMY
+
+  perform_sprite_grid_pos_update:
 	asl
 	tax
 	lda MMEM_ZERO_PAGE + 1
 	sta UMEM_SPRITE_GRID_POS_START, x
+	sta MMEM_ZERO_PAGE
 	lda MMEM_ZERO_PAGE + 2
 	sta UMEM_SPRITE_GRID_POS_START + 1, x
+	sta MMEM_ZERO_PAGE + 1
+	sty MMEM_ZERO_PAGE + 2
+	lda #TRUE
+    sta MMEM_ZERO_PAGE + 3
+    jsr update_cell_attribute
+	jmp return_set_sprite_grid_position
 
+  set_sprite_grid_flag_player:
+  	ldy #SCREEN_GRID_ATTR_ISPLAYER
+  	jmp perform_sprite_grid_pos_update
+
+  return_set_sprite_grid_position:
 	rts
 
 // =====================================================================================

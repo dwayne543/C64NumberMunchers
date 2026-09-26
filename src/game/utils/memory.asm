@@ -7,21 +7,23 @@
 // =====================================================================================
 set_bit:
 
-	.var compareAddr = UMEM_VARIABLES_DATA_START + MEMORY_SET_BIT_COMPARE_VAL_ADDR
+	// Save variable space data:
+	:preserve_variables(5)
 
 	// Load the compare value into memory:
 	ldx #$00
 	lda (MMEM_ZERO_PAGE, x)
-	ldx #MEMORY_SET_BIT_COMPARE_VAL_ADDR
-	sta UMEM_VARIABLES_DATA_START, x
+	sta UMEM_VARIABLES_DATA_START + 4
 
 	// Initialize X and Y:
-	ldx #MEMORY_SET_BIT_VALUE_ADDR
-	ldy MMEM_ZERO_PAGE, x 				// Y = value
-	ldx #MEMORY_SET_BIT_NUMBER_ADDR
-	lda MMEM_ZERO_PAGE, x
-	tax 								// X = starting search index
+	ldy MMEM_ZERO_PAGE + 3 				// Y = value
+	sty UMEM_VARIABLES_DATA_START + 5
+	lda MMEM_ZERO_PAGE + 2
+	tax 								// X = starting search index (bit number)
 	inx
+
+	// Create a base mask:
+	ldy #$01
 
   	// Search for bit:
   search_for_bit:
@@ -35,23 +37,28 @@ set_bit:
 
   	// Set bit:
   perform_set_bit_operation:
-  	tya
+  	lda UMEM_VARIABLES_DATA_START + 5
   	cmp #ON 							// Does the bit need to be switched on or off?
   	beq set_bit_on
 
   	// Set bit off:
-  	and compareAddr						// Switching off requires an AND operation
+  	tya
+  	eor #$FF 						    // Flip all bits so that the target bit is off and all others are on
+  	and UMEM_VARIABLES_DATA_START + 4 	// Switching off requires an AND operation
   	jmp apply_bit_change
 
   	// Set bit on:
   set_bit_on:
-  	ora compareAddr						// Switching on requires an OR operation
+  	tya
+  	ora UMEM_VARIABLES_DATA_START + 4	// Switching on requires an OR operation
 
   	// Apply bit change:
   apply_bit_change:
   	ldx #$00
   	sta (MMEM_ZERO_PAGE, x) 			// Apply the change
     
+  	:restore_variables(5)
+
     rts
 
 // =====================================================================================
