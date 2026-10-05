@@ -2,7 +2,7 @@
 #define DEBUG
 
 
-.const EXTENSION					= ".prg"
+.const EXTENSION						= ".prg"
 
 // ============================================
 // NAME OF MAIN FILE PRODUCED TO GO ON THE DISK
@@ -26,6 +26,7 @@
 .const UMEM_MAIN_CODE_ADDRESS	  		= $0810
 .const UMEM_SPRITE_DATA_START     		= $3000
 .const UMEM_GAME_SCREEN_DATA_START		= $8000
+.const UMEM_SOUND_DATA_START 			= $7F00
 .const UMEM_TABLES_DATA_START			= $7000
 .const UMEM_VARIABLES_DATA_START		= $6000
 .const UMEM_ZERO_PAGE_TRANSFER_START	= $6050
@@ -33,6 +34,7 @@
 .const UMEM_SPRITE_COORD_QUEUE_START	= $6200
 .const UMEM_VIRTUAL_SPRITE_RAM_START	= $6300
 .const UMEM_VIRTUAL_SPRITE_COORD_START  = $6310
+.const UMEM_SOUND_QUEUE_START 			= $6600
 .const UMEM_SCORE_START_ADDRESS			= $07A1
 .const UMEM_BREAKPOINT_CONDITION_ADDR 	= $5FFE
 .const UMEM_INIT_INDICATOR_ADDR 		= $5FDF
@@ -69,6 +71,7 @@
 .const MMEM_ZERO_PAGE					= $0002
 .const MMEM_LAST_KEY_PRESSED			= $00CB
 .const MMEM_CURSOR_CONTROL				= $00CC
+.const MMEM_VOLUME_CONTROL 			= $D418
 // ============================================
 
 
