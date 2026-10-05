@@ -3,6 +3,7 @@
 #import "data/screen.asm"
 #import "data/sprites.asm"
 #import "data/tables.asm"
+#import "data/sounds.asm"
 .segment UtilityRoutines
 #import "../common/disk.asm"
 #import "game_logic.asm"
@@ -74,6 +75,7 @@ main:
   game_loop:
 
     jsr process_sprite_queues
+    jsr process_sound_queue
     jsr process_user_input
 
     /*ldx #$1E

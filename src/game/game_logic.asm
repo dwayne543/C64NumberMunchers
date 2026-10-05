@@ -235,6 +235,13 @@ munch:
     stx MMEM_ZERO_PAGE + 1
     jsr queue_munch_animation
 
+  // queue sound effect:
+  	lda #<UMEM_SOUND_DATA_START
+  	sta MMEM_ZERO_PAGE
+  	lda #>UMEM_SOUND_DATA_START
+  	sta MMEM_ZERO_PAGE + 1
+  	jsr queue_sound
+
   return_munch:
   	rts
 
